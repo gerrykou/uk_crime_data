@@ -53,8 +53,27 @@ def stop_and_searches_by_force(force_id: str, date: str) -> Dict:
     return stop_and_searches
 
 def json_to_file(json_data, filename: str):
-    with open(f'data/{filename}', 'w') as outfile:
+    with open(f'data/{filename}.json', 'w') as outfile:
         json.dump(json_data, outfile)
+
+def json_to_csv(filename: str):
+    with open(f'{filename}.json') as jf:
+        data = json.load(jf)
+    police_data = data
+    print(police_data[0].keys())
+
+    with open(f'{filename}.csv', 'w') as csv_file:
+        csv_writer = csv.writer(csv_file)
+        
+        count = 0
+        
+        for row in police_data:
+            if count == 0:
+                header = row.keys()
+                csv_writer.writerow(header)
+                count += 1
+        
+            csv_writer.writerow(row.values())
 
 
 #https://data.police.uk/api/metropolitan/E05000564
@@ -82,9 +101,14 @@ if __name__ == '__main__':
     # print(neighbourhood_dict, type(neighbourhood_id))
 
     date = '2020-12'
-    response_data = stop_and_searches_by_force(force_id, date)
+    # response_data = stop_and_searches_by_force(force_id, date)
+
     #https://data.police.uk/api/stops-force?force=avon-and-somerset&date=2020-01
 
-    filename = f'{force_id}_{date}'
-    json_to_file(response_data, filename)
+    # filename = f'{force_id}_{date}'
+    # json_to_file(response_data, filename)
+
+    json_file = f'{force_id}_{date}'
+    
+    json_to_csv(f'data/{json_file}')
     
