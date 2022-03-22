@@ -1,6 +1,6 @@
 import requests
 import functools
-from typing import List, Dict
+from typing import List, Dict, Tuple
 import csv, json
 import os
 
@@ -19,19 +19,22 @@ from datetime import datetime
 PROJECT_ID = os.environ.get("GCP_PROJECT_ID")
 BUCKET = os.environ.get("GCP_GCS_BUCKET")
 FORCE_ID = 'metropolitan'
-# DATE1 = '{{ execution_date.strftime("%Y-%m") }}'
-# DATE  = f'{DATE1}'
-# print(f'date: {DATE}')
+DATE = "{{ ds }}"
+DATE  = DATE[:7]
+print(f'date: {DATE}')
 
-# FILENAME = f'{FORCE_ID}_{DATE}'
-# print(f'filename: {FILENAME}')
+FILENAME = f'{FORCE_ID}_{DATE}'
+print(f'filename: {FILENAME}')
 
 # dataset_url = f"https://s3.amazonaws.com/nyc-tlc/trip+data/{dataset_file}"
 path_to_local_home = os.environ.get("AIRFLOW_HOME", "/opt/airflow/")
-# parquet_file = dataset_file.replace('.csv', '.parquet')
+
 # BIGQUERY_DATASET = os.environ.get("BIGQUERY_DATASET", 'trips_data_all')
 
 DIR = f'{path_to_local_home}/data/'
+the_path = f'{DIR}{FILENAME}'
+the_json_file = f'{the_path}.json'
+
 
 def stop_and_searches_by_force(force_id: str, date: str) -> Dict:
     '''https://data.police.uk/docs/method/stops-force/ '''
@@ -50,16 +53,14 @@ def json_to_file(json_data, filename: str) -> None:
         json.dump(json_data, outfile)
 
 def json_to_csv(date: str) -> None:
-    date_str = date[:7]
-    filename = f'{FORCE_ID}_{date_str}'
-    path = f'{DIR}{filename}'
+    date, path = _return_date_and_path(date)
 
-    with open(f'{filename}.json') as jf:
+    with open(f'{path}.json') as jf:
         data = json.load(jf)
     stop_and_searches_data = data
     print(stop_and_searches_data[0].keys())
 
-    with open(f'{filename}.csv', 'w') as csv_file:
+    with open(f'{path}.csv', 'w') as csv_file:
         csv_writer = csv.writer(csv_file)
         count = 0
         for row in stop_and_searches_data:
@@ -70,11 +71,19 @@ def json_to_csv(date: str) -> None:
             csv_writer.writerow(row.values())
 
 def create_json_file_from_api(date):
+    date, path = _return_date_and_path(date)
+    response_data = stop_and_searches_by_force(FORCE_ID, date)
+    json_to_file(response_data, path)
+
+def _return_date_and_path(date: str) -> Tuple:
     date_str = date[:7]
-    response_data = stop_and_searches_by_force(FORCE_ID, date_str)
     filename = f'{FORCE_ID}_{date_str}'
     path = f'{DIR}{filename}'
-    json_to_file(response_data, path)
+    return date_str, path
+
+def delete_json_file(date: str) -> None:
+    date, path = _return_date_and_path(date)
+    os.remove(f'{path}.json')
 
 
 default_args = {
@@ -111,7 +120,15 @@ with DAG(
         },
     )
 
-    create_json_file_from_api_task >> json_to_csv_task
+    delete_json_file_task = PythonOperator(
+    task_id="delete_json_file_task",
+    python_callable=delete_json_file,
+    op_kwargs={
+        'date': '{{ ds }}'
+        },
+    )
+
+    create_json_file_from_api_task >> json_to_csv_task >> delete_json_file_task
 
 # if __name__ == '__main__':
 #     cwd = os.getcwd()
