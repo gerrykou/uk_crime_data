@@ -11,8 +11,8 @@ from airflow.operators.python import PythonOperator
 
 from google.cloud import storage
 from airflow.providers.google.cloud.operators.bigquery import BigQueryCreateExternalTableOperator
-# import pyarrow.csv as pv
-# import pyarrow.parquet as pq
+import pyarrow.csv as pv
+import pyarrow.parquet as pq
 from datetime import datetime
 
 
@@ -29,7 +29,7 @@ print(f'filename: {FILENAME}')
 # dataset_url = f"https://s3.amazonaws.com/nyc-tlc/trip+data/{dataset_file}"
 path_to_local_home = os.environ.get("AIRFLOW_HOME", "/opt/airflow/")
 
-# BIGQUERY_DATASET = os.environ.get("BIGQUERY_DATASET", 'trips_data_all')
+BIGQUERY_DATASET = os.environ.get("BIGQUERY_DATASET", 'stop_and_search')
 
 DIR = f'{path_to_local_home}/data/'
 the_path = f'{DIR}{FILENAME}'
@@ -37,7 +37,7 @@ the_json_file = f'{the_path}.json'
 
 
 def stop_and_searches_by_force(force_id: str, date: str) -> Dict:
-    '''https://data.police.uk/docs/method/stops-force/ '''
+    ''' https://data.police.uk/docs/method/stops-force/ '''
     print(date)
     # https://data.police.uk/api/stops-force?force=metropolitan&date=2021-01
     URL = f'https://data.police.uk/api/stops-force?force={force_id}&date={date}'
@@ -85,6 +85,11 @@ def delete_json_file(date: str) -> None:
     date, path = _return_date_and_path(date)
     os.remove(f'{path}.json')
 
+def format_to_parquet(date: str):
+    date, path = _return_date_and_path(date)
+    src_file = f'{path}.csv'
+    table = pv.read_csv(src_file) 
+    pq.write_table(table, src_file.replace('.csv', '.parquet'))
 
 default_args = {
     "owner": "airflow",
@@ -128,7 +133,16 @@ with DAG(
         },
     )
 
-    create_json_file_from_api_task >> json_to_csv_task >> delete_json_file_task
+    format_to_parquet_task = PythonOperator(
+    task_id="format_to_parquet_task",
+    python_callable=format_to_parquet,
+    op_kwargs={
+        'date': '{{ ds }}'
+        },
+    )
+
+
+    create_json_file_from_api_task >> json_to_csv_task >> delete_json_file_task >> format_to_parquet_task
 
 # if __name__ == '__main__':
 #     cwd = os.getcwd()

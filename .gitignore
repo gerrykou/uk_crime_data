@@ -153,3 +153,8 @@ cython_debug/
 notes
 mess.py
 data/
+
+#Terraform
+.terraform.lock.hcl
+.terraform/
+terraform.tfstate
