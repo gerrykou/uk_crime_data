@@ -53,7 +53,7 @@ def json_to_file(json_data, filename: str) -> None:
         json.dump(json_data, outfile)
 
 def json_to_csv(date: str) -> None:
-    date, path = _return_date_and_path(date)
+    date, path, filename = _return_date_and_path(date)
 
     with open(f'{path}.json') as jf:
         data = json.load(jf)
@@ -70,8 +70,8 @@ def json_to_csv(date: str) -> None:
                 count += 1
             csv_writer.writerow(row.values())
 
-def create_json_file_from_api(date):
-    date, path = _return_date_and_path(date)
+def create_json_file_from_api(date: str) -> None:
+    date, path, filename = _return_date_and_path(date)
     response_data = stop_and_searches_by_force(FORCE_ID, date)
     json_to_file(response_data, path)
 
@@ -79,17 +79,40 @@ def _return_date_and_path(date: str) -> Tuple:
     date_str = date[:7]
     filename = f'{FORCE_ID}_{date_str}'
     path = f'{DIR}{filename}'
-    return date_str, path
+    return date_str, path, filename
 
 def delete_json_file(date: str) -> None:
-    date, path = _return_date_and_path(date)
+    date, path, filename = _return_date_and_path(date)
     os.remove(f'{path}.json')
 
 def format_to_parquet(date: str):
-    date, path = _return_date_and_path(date)
+    date, path, filename = _return_date_and_path(date)
     src_file = f'{path}.csv'
     table = pv.read_csv(src_file) 
     pq.write_table(table, src_file.replace('.csv', '.parquet'))
+
+def upload_to_gcs(bucket: str, date: str) -> None:
+    """
+    Ref: https://cloud.google.com/storage/docs/uploading-objects#storage-upload-object-python
+    :param bucket: GCS bucket name
+    :param date: date from ds
+    """
+    # WORKAROUND to prevent timeout for files > 6 MB on 800 kbps upload speed.
+    # (Ref: https://github.com/googleapis/python-storage/issues/74)
+    storage.blob._MAX_MULTIPART_SIZE = 5 * 1024 * 1024  # 5 MB
+    storage.blob._DEFAULT_CHUNKSIZE = 5 * 1024 * 1024  # 5 MB
+    # End of Workaround
+
+    client = storage.Client()
+    bucket = client.bucket(bucket)
+
+    date_str, path, filename = _return_date_and_path(date)
+    local_file = f'{path}.parquet'
+    object_name = f'{filename}.parquet'
+    
+    blob = bucket.blob(object_name)
+    blob.upload_from_filename(local_file)
+
 
 default_args = {
     "owner": "airflow",
@@ -141,8 +164,16 @@ with DAG(
         },
     )
 
+    local_to_gcs_task = PythonOperator(
+        task_id="local_to_gcs_task",
+        python_callable=upload_to_gcs,
+        op_kwargs={
+            'bucket': BUCKET,
+            'date': '{{ ds }}'
+        },
+    )
 
-    create_json_file_from_api_task >> json_to_csv_task >> delete_json_file_task >> format_to_parquet_task
+    create_json_file_from_api_task >> json_to_csv_task >> delete_json_file_task >> format_to_parquet_task >> local_to_gcs_task
 
 # if __name__ == '__main__':
 #     cwd = os.getcwd()

@@ -152,7 +152,11 @@ cython_debug/
 #.idea/
 notes
 mess.py
+
+#airflow
 data/
+logs/*
+plugins/*
 
 #Terraform
 .terraform.lock.hcl

@@ -69,7 +69,7 @@ x-airflow-common:
     - ./logs:/opt/airflow/logs
     - ./plugins:/opt/airflow/plugins
     - ./test:/opt/airflow/test
-    # - ./data:/opt/airflow/data
+    - ./data:/opt/airflow/data
     - ~/.google/credentials/:/.google/credentials:ro
 
   user: "${AIRFLOW_UID:-50000}:0"
