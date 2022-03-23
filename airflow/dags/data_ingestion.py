@@ -19,8 +19,8 @@ from datetime import datetime
 PROJECT_ID = os.environ.get("GCP_PROJECT_ID")
 BUCKET = os.environ.get("GCP_GCS_BUCKET")
 FORCE_ID = 'metropolitan'
-DATE = "{{ ds }}"
-DATE  = DATE[:7]
+DATE = "{{ execution_date.strftime('%Y-%m') }}"
+
 print(f'date: {DATE}')
 
 FILENAME = f'{FORCE_ID}_{DATE}'
@@ -31,7 +31,10 @@ path_to_local_home = os.environ.get("AIRFLOW_HOME", "/opt/airflow/")
 
 BIGQUERY_DATASET = os.environ.get("BIGQUERY_DATASET", 'stop_and_search')
 
-DIR = f'{path_to_local_home}/data/'
+# DIR = f'{path_to_local_home}/data/'
+DIR = f'{path_to_local_home}/'
+PATH = f'{DIR}{FILENAME}'
+
 the_path = f'{DIR}{FILENAME}'
 the_json_file = f'{the_path}.json'
 
@@ -53,7 +56,7 @@ def json_to_file(json_data, filename: str) -> None:
         json.dump(json_data, outfile)
 
 def json_to_csv(date: str) -> None:
-    date, path, filename = _return_date_and_path(date)
+    date, path, filename = _return_date_path_filename(date)
 
     with open(f'{path}.json') as jf:
         data = json.load(jf)
@@ -71,22 +74,22 @@ def json_to_csv(date: str) -> None:
             csv_writer.writerow(row.values())
 
 def create_json_file_from_api(date: str) -> None:
-    date, path, filename = _return_date_and_path(date)
+    date, path, filename = _return_date_path_filename(date)
     response_data = stop_and_searches_by_force(FORCE_ID, date)
     json_to_file(response_data, path)
 
-def _return_date_and_path(date: str) -> Tuple:
+def _return_date_path_filename(date: str) -> Tuple:
     date_str = date[:7]
     filename = f'{FORCE_ID}_{date_str}'
     path = f'{DIR}{filename}'
-    return date_str, path, filename
+    return date_str, path, filename # TO DO return kwargs
 
 def delete_json_file(date: str) -> None:
-    date, path, filename = _return_date_and_path(date)
+    date, path, filename = _return_date_path_filename(date)
     os.remove(f'{path}.json')
 
 def format_to_parquet(date: str):
-    date, path, filename = _return_date_and_path(date)
+    date, path, filename = _return_date_path_filename(date)
     src_file = f'{path}.csv'
     table = pv.read_csv(src_file) 
     pq.write_table(table, src_file.replace('.csv', '.parquet'))
@@ -106,7 +109,7 @@ def upload_to_gcs(bucket: str, date: str) -> None:
     client = storage.Client()
     bucket = client.bucket(bucket)
 
-    date_str, path, filename = _return_date_and_path(date)
+    date_str, path, filename = _return_date_path_filename(date)
     local_file = f'{path}.parquet'
     object_name = f'{filename}.parquet'
     

@@ -69,6 +69,7 @@ x-airflow-common:
     - ./logs:/opt/airflow/logs
     - ./plugins:/opt/airflow/plugins
     - ./test:/opt/airflow/test
+    - ./src:/opt/airflow/src
     - ./data:/opt/airflow/data
     - ~/.google/credentials/:/.google/credentials:ro
 

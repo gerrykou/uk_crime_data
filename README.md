@@ -26,9 +26,9 @@ terraform init
 terraform plan
 terraform apply
 ```
-```
+<!-- ```
 make run-code
 ```
 ```
 make run-tests
-```
+``` -->
