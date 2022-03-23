@@ -119,7 +119,7 @@ default_args = {
     "start_date": datetime(2020, 1, 1),
     "end_date": datetime(2020, 12, 1),
     "depends_on_past": False,
-    "retries": 1,
+    "retries": 4,
 }
 
 # NOTE: DAG declaration - using a Context Manager (an implicit way)
@@ -128,7 +128,7 @@ with DAG(
     schedule_interval="@monthly",
     default_args=default_args,
     catchup=True,
-    max_active_runs=1,
+    max_active_runs=3,
     tags=['uk-crime-data'],
 ) as dag:
 

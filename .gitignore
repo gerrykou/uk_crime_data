@@ -155,8 +155,7 @@ mess.py
 
 #airflow
 data/
-logs/*
-plugins/*
+logs/
 
 #Terraform
 .terraform.lock.hcl
