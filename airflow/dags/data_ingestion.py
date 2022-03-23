@@ -4,6 +4,9 @@ from typing import List, Dict, Tuple
 import csv, json
 import os
 
+import pyspark
+from pyspark.sql import SparkSession
+
 from airflow import DAG
 from airflow.utils.dates import days_ago
 from airflow.operators.bash import BashOperator
@@ -94,6 +97,10 @@ def format_to_parquet(date: str):
     table = pv.read_csv(src_file) 
     pq.write_table(table, src_file.replace('.csv', '.parquet'))
 
+def run_spark():
+    spark = SparkSession.builder.appName('Practise').getOrCreate()
+    print(spark)
+
 def upload_to_gcs(bucket: str, date: str) -> None:
     """
     Ref: https://cloud.google.com/storage/docs/uploading-objects#storage-upload-object-python
@@ -167,17 +174,22 @@ with DAG(
         },
     )
 
-    local_to_gcs_task = PythonOperator(
-        task_id="local_to_gcs_task",
-        python_callable=upload_to_gcs,
-        op_kwargs={
-            'bucket': BUCKET,
-            'date': '{{ ds }}'
-        },
+    run_spark_task = PythonOperator(
+    task_id="run_spark_task",
+    python_callable=run_spark,
     )
 
-    create_json_file_from_api_task >> json_to_csv_task >> delete_json_file_task >> format_to_parquet_task >> local_to_gcs_task
+    # local_to_gcs_task = PythonOperator(
+    #     task_id="local_to_gcs_task",
+    #     python_callable=upload_to_gcs,
+    #     op_kwargs={
+    #         'bucket': BUCKET,
+    #         'date': '{{ ds }}'
+    #     },
+    # )
 
+    run_spark_task >> create_json_file_from_api_task >> json_to_csv_task >> delete_json_file_task >> format_to_parquet_task #>> local_to_gcs_task
+    
 # if __name__ == '__main__':
 #     cwd = os.getcwd()
 #     print(cwd)

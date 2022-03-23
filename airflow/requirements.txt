@@ -1,2 +1,5 @@
 apache-airflow-providers-google
 pyarrow
+pkg-resources==0.0.0
+py4j==0.10.9.3
+pyspark==3.2.1
