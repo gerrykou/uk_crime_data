@@ -42,15 +42,6 @@ RUN DOWNLOAD_URL="https://download.java.net/java/GA/jdk11/9/GPL/openjdk-11.0.2_l
     && rm -rf "${TMP_DIR}" \
     && java --version
 
-
-    # && rm openjdk-11.0.2_linux-x64_bin.tar.gz
-    # && wget https://dlcdn.apache.org/spark/spark-3.0.3/spark-3.0.3-bin-hadoop3.2.tgz
-    # && tar xzfv spark-3.0.3-bin-hadoop3.2.tgz
-    # && export SPARK_HOME="${HOME}/bin/spark-3.0.3-bin-hadoop3.2"
-    # && export PATH="${SPARK_HOME}/bin:${PATH}"
-    # && export PYTHONPATH="${SPARK_HOME}/python/:$PYTHONPATH"
-    # && export PYTHONPATH="${SPARK_HOME}/python/lib/py4j-0.10.9-src.zip:$PYTHONPATH"
-
 WORKDIR $AIRFLOW_HOME
 
 # COPY requirements.txt .
