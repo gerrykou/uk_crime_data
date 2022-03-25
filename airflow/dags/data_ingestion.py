@@ -38,9 +38,6 @@ BIGQUERY_DATASET = os.environ.get("BIGQUERY_DATASET", 'stop_and_search')
 DIR = f'{path_to_local_home}/'
 PATH = f'{DIR}{FILENAME}'
 
-the_path = f'{DIR}{FILENAME}'
-the_json_file = f'{the_path}.json'
-
 
 def stop_and_searches_by_force(force_id: str, date: str) -> Dict:
     ''' https://data.police.uk/docs/method/stops-force/ '''
@@ -57,6 +54,35 @@ def stop_and_searches_by_force(force_id: str, date: str) -> Dict:
 def json_to_file(json_data, filename: str) -> None:
     with open(f'{filename}.json', 'w') as outfile:
         json.dump(json_data, outfile)
+
+def update_json(date: str):
+    date, path, filename = _return_date_path_filename(date)
+    # cwd = os.getcwd()
+    # print(cwd)
+    # os.chdir('../../data')
+    filename = f'{path}_raw'
+    new_filename = path
+
+    file = f'{filename}.json'
+    with open(file) as jf:
+        data = json.load(jf)
+    # print(stop_and_searches_data[0].keys())
+    new_data = []
+    for row in data:
+
+        if row['location'] is not None:
+            # print(row['location'])
+            row['latitude'] = row['location']['latitude']
+            row['longitude'] = row['location']['longitude']
+            row['street_id'] = row['location']['street']['id']
+            row['street_name'] = row['location']['street']['name']
+        else:
+            row['latitude'] = None
+            row['longitude'] = None
+            row['street_id'] = None
+            row['street_name'] = None
+        new_data.append(row)
+    json_to_file(new_data, new_filename)
 
 def json_to_csv(date: str) -> None:
     date, path, filename = _return_date_path_filename(date)
@@ -79,7 +105,7 @@ def json_to_csv(date: str) -> None:
 def create_json_file_from_api(date: str) -> None:
     date, path, filename = _return_date_path_filename(date)
     response_data = stop_and_searches_by_force(FORCE_ID, date)
-    json_to_file(response_data, path)
+    json_to_file(response_data, f'{path}_raw')
 
 def _return_date_path_filename(date: str) -> Tuple:
     date_str = date[:7]
@@ -89,7 +115,7 @@ def _return_date_path_filename(date: str) -> Tuple:
 
 def delete_json_file(date: str) -> None:
     date, path, filename = _return_date_path_filename(date)
-    os.remove(f'{path}.json')
+    os.remove(f'{path}_raw.json')
 
 def format_to_parquet(date: str):
     date, path, filename = _return_date_path_filename(date)
@@ -150,6 +176,14 @@ with DAG(
             },
     )
 
+    update_json_task = PythonOperator(
+        task_id="update_json_task",
+        python_callable=update_json,
+        op_kwargs={
+            'date': '{{ ds }}'
+            },
+    )
+
     json_to_csv_task = PythonOperator(
     task_id="json_to_csv_task",
     python_callable=json_to_csv,
@@ -188,7 +222,7 @@ with DAG(
     #     },
     # )
 
-    run_spark_task >> create_json_file_from_api_task >> json_to_csv_task >> delete_json_file_task >> format_to_parquet_task #>> local_to_gcs_task
+    run_spark_task >> create_json_file_from_api_task >> update_json_task >> json_to_csv_task >> delete_json_file_task >> format_to_parquet_task #>> local_to_gcs_task
     
 # if __name__ == '__main__':
 #     cwd = os.getcwd()

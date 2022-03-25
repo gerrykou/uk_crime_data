@@ -152,7 +152,8 @@ cython_debug/
 #.idea/
 notes
 mess.py
-
+*.csv
+new_data/
 #airflow
 data/
 logs/
