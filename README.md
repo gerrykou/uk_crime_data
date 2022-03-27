@@ -26,6 +26,9 @@ terraform init
 terraform plan
 terraform apply
 ```
+## Queries  
+
+![Queries](/images/query-object-of-search.png) 
 <!-- ```
 make run-code
 ```
