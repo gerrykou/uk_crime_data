@@ -25,7 +25,9 @@ docker-compose up
 ## Dags
 
 ![data_ingestion_dag](/images/dag_data_ingestion.png)  
+
 ![gcs_2_bq_dag](/images/dag_gcs_2_bq.png)  
+
 ## Terraform
 ```
 gcloud auth application-default login 
