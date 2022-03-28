@@ -24,9 +24,10 @@ docker-compose up
 ```
 ## Dags
 
-![data_ingestion_dag](/images/dag_data_ingestion.png)  
+<img src="images/data_ingestion_dag.png" width="400">   
 
-![gcs_2_bq_dag](/images/dag_gcs_2_bq.png)  
+<img src="images/gcs_2_bq_dag.png" width="400">
+ 
 
 ## Terraform
 ```
