@@ -9,17 +9,13 @@ from pyspark.sql import SparkSession
 from pyspark.sql import types
 
 from airflow import DAG
-from airflow.utils.dates import days_ago
-from airflow.operators.bash import BashOperator
 from airflow.operators.python import PythonOperator
 
 from google.cloud import storage
-from airflow.providers.google.cloud.operators.bigquery import BigQueryCreateExternalTableOperator, BigQueryInsertJobOperator
-from airflow.providers.google.cloud.transfers.gcs_to_gcs import GCSToGCSOperator
-from airflow.providers.google.cloud.operators.bigquery import BigQueryCreateExternalTableOperator
 import pyarrow.csv as pv
 import pyarrow.parquet as pq
-from datetime import datetime
+import pyarrow as pa
+from datetime import datetime, timedelta
 
 PROJECT_ID = os.environ.get("GCP_PROJECT_ID")
 BUCKET = os.environ.get("GCP_GCS_BUCKET")
@@ -31,38 +27,62 @@ print(f'date: {DATE}')
 FILENAME = f'{FORCE_ID}_{DATE}'
 print(f'filename: {FILENAME}')
 
-# dataset_url = f"https://s3.amazonaws.com/nyc-tlc/trip+data/{dataset_file}"
 path_to_local_home = os.environ.get("AIRFLOW_HOME", "/opt/airflow/")
 
 BIGQUERY_DATASET = os.environ.get("BIGQUERY_DATASET", 'stop_and_search')
 
-# DIR = f'{path_to_local_home}/data/'
 DIR = f'{path_to_local_home}/'
 PATH = f'{DIR}{FILENAME}'
 INPUT_FILETYPE = "parquet"
 
-SCHEMA = types.StructType([
-    types.StructField('age_range', types.StringType(), True),
-    types.StructField('outcome', types.StringType(), True),
-    types.StructField('involved_person', types.BooleanType(), True),
-    types.StructField('self_defined_ethnicity', types.StringType(), True),
-    types.StructField('gender', types.StringType(), True),
-    types.StructField('legislation', types.StringType(), True),
-    types.StructField('outcome_linked_to_object_of_search', types.StringType(), True),
-    types.StructField('datetime', types.TimestampType(), True),
-    types.StructField('removal_of_more_than_outer_clothing', types.StringType(), True),
-    types.StructField('outcome_object', types.StringType(), True),
-    types.StructField('location', types.StringType(), True),
-    types.StructField('operation', types.StringType(), True),
-    types.StructField('officer_defined_ethnicity', types.StringType(), True),
-    types.StructField('type', types.StringType(), True),
-    types.StructField('operation_name', types.StringType(), True),
-    types.StructField('object_of_search', types.StringType(), True),
-    types.StructField('latitude', types.DoubleType(), True),
-    types.StructField('longitude', types.DoubleType(), True),
-    types.StructField('street_id', types.IntegerType(), True),
-    types.StructField('street_name', types.StringType(), True),
-])
+# SCHEMA = types.StructType([
+#     types.StructField('age_range', types.StringType(), True),
+#     types.StructField('outcome', types.StringType(), True),
+#     types.StructField('involved_person', types.BooleanType(), True),
+#     types.StructField('self_defined_ethnicity', types.StringType(), True),
+#     types.StructField('gender', types.StringType(), True),
+#     types.StructField('legislation', types.StringType(), True),
+#     types.StructField('outcome_linked_to_object_of_search', types.StringType(), True),
+#     types.StructField('datetime', types.TimestampType(), True),
+#     types.StructField('removal_of_more_than_outer_clothing', types.StringType(), True),
+#     types.StructField('outcome_object', types.StringType(), True),
+#     types.StructField('location', types.StringType(), True),
+#     types.StructField('operation', types.StringType(), True),
+#     types.StructField('officer_defined_ethnicity', types.StringType(), True),
+#     types.StructField('type', types.StringType(), True),
+#     types.StructField('operation_name', types.StringType(), True),
+#     types.StructField('object_of_search', types.StringType(), True),
+#     types.StructField('latitude', types.DoubleType(), True),
+#     types.StructField('longitude', types.DoubleType(), True),
+#     types.StructField('street_id', types.IntegerType(), True),
+#     types.StructField('street_name', types.StringType(), True),
+# ])
+
+pyarrow_table_schema = pa.schema(
+    [
+        ('age_range',pa.string()),
+        ('outcome',pa.string()),
+        ('involved_person',pa.bool_()),
+        ('self_defined_ethnicity',pa.string()),
+        ('gender',pa.string()),
+        ('legislation',pa.string()),
+        ('outcome_linked_to_object_of_search',pa.string()),
+        ('datetime',pa.timestamp('s')),
+        ('removal_of_more_than_outer_clothing',pa.string()),
+        ('outcome_object',pa.string()),
+        ('location',pa.string()),
+        ('operation',pa.string()),
+        ('officer_defined_ethnicity',pa.string()),
+        ('type',pa.string()),
+        ('operation_name',pa.string()),
+        ('object_of_search',pa.string()),
+        ('latitude',pa.float64()),
+        ('longitude',pa.float64()),
+        ('lat_long',pa.string()),
+        ('street_id',pa.int64()),
+        ('street_name',pa.string()),
+    ]
+)
 
 def stop_and_searches_by_force(force_id: str, date: str) -> Dict:
     ''' https://data.police.uk/docs/method/stops-force/ '''
@@ -90,14 +110,19 @@ def update_json(date: str):
     new_data = []
     for row in data:
 
+        if row['datetime'] is not None:
+            row['datetime'] = row['datetime'][:19] # remove timezone info from datetime string - issue on casting datetime from pyarrow 
+
         if row['location'] is not None:
             row['latitude'] = row['location']['latitude']
             row['longitude'] = row['location']['longitude']
+            row['lat_long'] = f"{row['location']['latitude']},{row['location']['longitude']}"
             row['street_id'] = row['location']['street']['id']
             row['street_name'] = row['location']['street']['name']
         else:
             row['latitude'] = None
             row['longitude'] = None
+            row['lat_long'] = None
             row['street_id'] = None
             row['street_name'] = None
         new_data.append(row)
@@ -140,6 +165,7 @@ def format_to_parquet(date: str):
     date, path, filename = _return_date_path_filename(date)
     src_file = f'{path}.csv'
     table = pv.read_csv(src_file) 
+    table = table.cast(pyarrow_table_schema)
     pq.write_table(table, src_file.replace('.csv', '.parquet'))
 
 # def format_to_parquet_with_spark(date: str):
@@ -184,10 +210,11 @@ def upload_to_gcs(bucket: str, date: str) -> None:
 
 default_args = {
     "owner": "airflow",
-    "start_date": datetime(2020, 1, 1),
-    "end_date": datetime(2020, 12, 1),
+    "start_date": datetime(2017, 1, 1),
+    "end_date": datetime(2021, 12, 1),
     "depends_on_past": False,
-    "retries": 4,
+    "retries": 2,
+    "retry_delay": timedelta(seconds=30),
 }
 
 # NOTE: DAG declaration - using a Context Manager (an implicit way)
@@ -196,7 +223,7 @@ with DAG(
     schedule_interval="@monthly",
     default_args=default_args,
     catchup=True,
-    max_active_runs=3,
+    max_active_runs=2,
     tags=['uk-crime-data'],
 ) as dag:
 
@@ -257,46 +284,46 @@ with DAG(
         },
     )
     
-    bigquery_external_table_task = BigQueryCreateExternalTableOperator(
-        task_id= "bigquery_external_table_task",
-        table_resource={
-            "tableReference": {
-                "projectId": PROJECT_ID,
-                "datasetId": BIGQUERY_DATASET,
-                "tableId": f"{BIGQUERY_DATASET}_external_table",
-            },
-            "externalDataConfiguration": {
-                # "autodetect": "True",
-                "sourceFormat": "PARQUET",
-                "sourceUris": [f"gs://{BUCKET}/*"],
-            },
-        },
-    )
+    # bigquery_external_table_task = BigQueryCreateExternalTableOperator(
+    #     task_id= "bigquery_external_table_task",
+    #     table_resource={
+    #         "tableReference": {
+    #             "projectId": PROJECT_ID,
+    #             "datasetId": BIGQUERY_DATASET,
+    #             "tableId": f"{BIGQUERY_DATASET}_external_table",
+    #         },
+    #         "externalDataConfiguration": {
+    #             # "autodetect": "True",
+    #             "sourceFormat": "PARQUET",
+    #             "sourceUris": [f"gs://{BUCKET}/*"],
+    #         },
+    #     },
+    # )
 
-    CREATE_BQ_TBL_QUERY = (
-        f"CREATE OR REPLACE TABLE {BIGQUERY_DATASET} \
-        PARTITION BY DATE('datetime') \
-        AS \
-        SELECT * FROM {BIGQUERY_DATASET}_external_table;")
+    # CREATE_BQ_TBL_QUERY = (
+    #     f"CREATE OR REPLACE TABLE {BIGQUERY_DATASET} \
+    #     # PARTITION BY DATE('datetime') \
+    #     AS \
+    #     SELECT * FROM {BIGQUERY_DATASET}_external_table;")
 
 
-    # Create a partitioned table from external table
-    bigquery_create_partitioned_table_task = BigQueryInsertJobOperator(
-        task_id=f"bigquery_create_partitioned_table_task",
-        configuration={
-            "query": {
-                "query": CREATE_BQ_TBL_QUERY,
-                "useLegacySql": False,
-            }
-        }
-    )
+    # # Create a partitioned table from external table
+    # bigquery_create_partitioned_table_task = BigQueryInsertJobOperator(
+    #     task_id=f"bigquery_create_partitioned_table_task",
+    #     configuration={
+    #         "query": {
+    #             "query": CREATE_BQ_TBL_QUERY,
+    #             "useLegacySql": False,
+    #         }
+    #     }
+    # )
 
     # move_files_gcs_task >> bigquery_external_table_task >> bq_create_partitioned_table_job
     
 
     create_json_file_from_api_task >> update_json_task >> \
-        json_to_csv_task >> delete_json_file_task >> format_to_parquet_task >> local_to_gcs_task >> \
-            bigquery_external_table_task >> bigquery_create_partitioned_table_task
+        json_to_csv_task >> delete_json_file_task >> format_to_parquet_task >> local_to_gcs_task #>> \
+            # bigquery_external_table_task >> bigquery_create_partitioned_table_task
     # create_json_file_from_api_task >> update_json_task >> \
     #     json_to_csv_task >> delete_json_file_task >> format_to_parquet_with_spark_task >> local_to_gcs_task
 
