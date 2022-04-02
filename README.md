@@ -1,4 +1,4 @@
-## UK crime data ##
+# UK crime data
 
 UK Police Data Ingestion  
 
@@ -8,10 +8,37 @@ https://data.police.uk/docs/method/stops-force/
   
 We will investigate data from 'metropolitan' police force.  
 
-Create your google credentials and save the file in this path   
-~/.google/credentials/   
+## Project Architecture
 
-Update the docker-compose.yaml file with your project id and google storage bucket   
+These Technologies are used for this Project:   
+* Python
+* Docker Compose
+* Airflow
+* Gcloud Storage
+* Gcloud BigQuery
+* Gcloud Data Studio
+* Terraform
+
+## Dags
+As a description of the Pipeline, the DAGS tasks are presented here:  
+<img src="images/data_ingestion_dag.png" width="400">   
+
+<img src="images/gcs_2_bq_dag.png" width="400">   
+
+## Setup Google Cloud project  
+
+Setup your account as described [here](/Initial-setup.md)  
+
+## Update Files   
+
+Update the terraform [`variables.tf`](/terraform/variables.tf) 
+```
+variable "project" {
+  description = "Your GCP Project ID"
+}
+```
+
+Update the [`docker-compose.yaml`](/airflow/docker-compose.yaml) file with your project id and google storage bucket   
 ```
 GCP_PROJECT_ID: 'de-bootcamp-339509'
 GCP_GCS_BUCKET: 'dtc_data_lake_de-bootcamp-339509'
@@ -22,12 +49,6 @@ echo -e "AIRFLOW_UID=$(id -u)\nAIRFLOW_GID=0" > .env
 docker-compose up airflow-init
 docker-compose up
 ```
-## Dags
-
-<img src="images/data_ingestion_dag.png" width="400">   
-
-<img src="images/gcs_2_bq_dag.png" width="400">
- 
 
 ## Terraform
 ```
