@@ -23,8 +23,13 @@ These Technologies are used for this Project:
 As a description of the Pipeline, the DAGS tasks are presented here:  
 <img src="images/data_ingestion_dag.png" width="400">   
 
-<img src="images/gcs_2_bq_dag.png" width="400">   
+<img src="images/gcs_2_bq_dag.png" width="400"><br/><br/>   
 
+
+## PySpark Jupyter Notebooks Analysis
+
+An analysis of sample data is presented in this jupyter notebook file [search-force.ipynb](/notebooks/search-force.ipynb)  
+   
 ## Setup Google Cloud project  
 
 Setup your account as described [here](/Initial-setup.md)  
@@ -59,6 +64,10 @@ terraform init
 terraform plan
 terraform apply
 ```
+
+## Read from Google cloud Storage with Spark and Jupyter
+[here](/notebooks/gcs-search-force.ipynb)
+
 ## Queries  
 
 ![Queries](/images/query-object-of-search.png) 
