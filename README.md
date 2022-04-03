@@ -102,9 +102,6 @@ More queries are in this file [queries.sql](queries.sql)
 
 Link to Data Studio [`report`](https://datastudio.google.com/reporting/a5549182-d121-4db6-8955-17de26c95602)   
 
-<iframe width="600" height="450" src="https://datastudio.google.com/embed/reporting/a5549182-d121-4db6-8955-17de26c95602/page/p_0hpe5u2mtc" frameborder="0" style="border:0" allowfullscreen></iframe>
-
-
 <img src="images/heatmap_stop_search.png" width="600"><br/><br/>   
 
 
