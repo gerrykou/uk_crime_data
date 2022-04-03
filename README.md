@@ -71,7 +71,7 @@ terraform apply
 
 There are two DAGS in airflow   
 The `data_ingestion` dag is running monthly to collect the data   
-The `gcs_to_bq_dag` is running once, when the DAG has finished
+The `gcs_to_bq_dag` is running once, when the `data_ingestion` DAG has finished
 
 ## Big Query
 
