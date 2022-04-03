@@ -9,6 +9,9 @@ https://data.police.uk/docs/method/stops-force/
 The data from 'metropolitan' police force is used.  
 
 ## Project Architecture
+   
+<img src="images/architecture-uk-police-stop-forces.png" width="600"><br/><br/> 
+
 
 These Technologies are used for this Project:   
 * Python
