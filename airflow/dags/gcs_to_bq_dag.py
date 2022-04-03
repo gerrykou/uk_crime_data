@@ -30,42 +30,6 @@ with DAG(
     max_active_runs=1,
     tags=['stop-and-search'],
 ) as dag:
-
-    # bigquery_external_table_task = BigQueryCreateExternalTableOperator(
-    #     task_id= "bq_external_table_task",
-    #     table_resource={
-    #         "tableReference": {
-    #             "projectId": PROJECT_ID,
-    #             "datasetId": BIGQUERY_DATASET,
-    #             "tableId": f"{BIGQUERY_DATASET}_external_table",
-    #         },
-    #         "externalDataConfiguration": {
-    #             # "autodetect": "True",
-    #             "sourceFormat": "PARQUET",
-    #             "sourceUris": [f"gs://{BUCKET}/*"],
-    #         },
-    #     },
-    # )
-
-    # CREATE_BQ_TBL_QUERY = (
-    #     f"CREATE OR REPLACE TABLE {BIGQUERY_DATASET} \
-    #     PARTITION BY DATE('datetime') \
-    #     AS \
-    #     SELECT * FROM {BIGQUERY_DATASET}_external_table;")
-
-
-    # # Create a partitioned table from external table
-    # bq_create_partitioned_table_job = BigQueryInsertJobOperator(
-    #     task_id=f"bq_create_partitioned_table_task",
-    #     configuration={
-    #         "query": {
-    #             "query": CREATE_BQ_TBL_QUERY,
-    #             "useLegacySql": False,
-    #         }
-    #     }
-    # )
-
-
         
     bigquery_external_table_task = BigQueryCreateExternalTableOperator(
         task_id= "bigquery_external_table_task",
@@ -76,7 +40,6 @@ with DAG(
                 "tableId": f"{BIGQUERY_DATASET}_external_table",
             },
             "externalDataConfiguration": {
-                # "autodetect": "True",
                 "sourceFormat": "PARQUET",
                 "sourceUris": [f"gs://{BUCKET}/*"],
             },
@@ -88,11 +51,6 @@ with DAG(
         PARTITION BY DATE(datetime) \
         AS \
         SELECT * FROM {PROJECT_ID}.{BIGQUERY_DATASET}.{BIGQUERY_DATASET}_external_table;")
-
-# CREATE OR REPLACE TABLE stop_and_search.stop_and_search_partitioned_table 
-# PARTITION BY DATE(datetime)
-# AS
-# SELECT * FROM stop_and_search.stop_and_search_external_table
 
     # Create a partitioned table from external table
     bigquery_create_partitioned_table_task = BigQueryInsertJobOperator(

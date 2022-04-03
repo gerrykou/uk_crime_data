@@ -4,9 +4,9 @@ from typing import List, Dict, Tuple
 import csv, json
 import os
 
-import pyspark
-from pyspark.sql import SparkSession
-from pyspark.sql import types
+# import pyspark
+# from pyspark.sql import SparkSession
+# from pyspark.sql import types
 
 from airflow import DAG
 from airflow.operators.python import PythonOperator
@@ -210,7 +210,7 @@ def upload_to_gcs(bucket: str, date: str) -> None:
 
 default_args = {
     "owner": "airflow",
-    "start_date": datetime(2017, 1, 1),
+    "start_date": datetime(2020, 1, 1),
     "end_date": datetime(2021, 12, 1),
     "depends_on_past": False,
     "retries": 2,
@@ -284,47 +284,5 @@ with DAG(
         },
     )
     
-    # bigquery_external_table_task = BigQueryCreateExternalTableOperator(
-    #     task_id= "bigquery_external_table_task",
-    #     table_resource={
-    #         "tableReference": {
-    #             "projectId": PROJECT_ID,
-    #             "datasetId": BIGQUERY_DATASET,
-    #             "tableId": f"{BIGQUERY_DATASET}_external_table",
-    #         },
-    #         "externalDataConfiguration": {
-    #             # "autodetect": "True",
-    #             "sourceFormat": "PARQUET",
-    #             "sourceUris": [f"gs://{BUCKET}/*"],
-    #         },
-    #     },
-    # )
-
-    # CREATE_BQ_TBL_QUERY = (
-    #     f"CREATE OR REPLACE TABLE {BIGQUERY_DATASET} \
-    #     # PARTITION BY DATE('datetime') \
-    #     AS \
-    #     SELECT * FROM {BIGQUERY_DATASET}_external_table;")
-
-
-    # # Create a partitioned table from external table
-    # bigquery_create_partitioned_table_task = BigQueryInsertJobOperator(
-    #     task_id=f"bigquery_create_partitioned_table_task",
-    #     configuration={
-    #         "query": {
-    #             "query": CREATE_BQ_TBL_QUERY,
-    #             "useLegacySql": False,
-    #         }
-    #     }
-    # )
-
-    # move_files_gcs_task >> bigquery_external_table_task >> bq_create_partitioned_table_job
-    
-
     create_json_file_from_api_task >> update_json_task >> \
-        json_to_csv_task >> delete_json_file_task >> format_to_parquet_task >> local_to_gcs_task #>> \
-            # bigquery_external_table_task >> bigquery_create_partitioned_table_task
-    # create_json_file_from_api_task >> update_json_task >> \
-    #     json_to_csv_task >> delete_json_file_task >> format_to_parquet_with_spark_task >> local_to_gcs_task
-
-# if __name__ == '__main__':
+        json_to_csv_task >> delete_json_file_task >> format_to_parquet_task >> local_to_gcs_task 

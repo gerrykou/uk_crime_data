@@ -64,6 +64,17 @@ terraform plan
 terraform apply
 ```
 
+## Airflow
+
+There are two DAGS in airflow   
+The `data_ingestion` dag is running monthly to collect the data   
+The `gcs_to_bq_dag` is running once, when the DAG has finished
+
+## Big Query
+
+A partioned table is created in Big Query.  
+The partition is based on `datetime` to optimise performance when querying based on `datetime`   
+
 ## Queries  
 
 This is the Query needed to produce the dashboard   
