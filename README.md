@@ -88,7 +88,7 @@ More queries are in this file [queries.sql](queries.sql)
 
 Link to Data Studio [`report`](https://datastudio.google.com/reporting/a5549182-d121-4db6-8955-17de26c95602)   
 
-<img src="images/heatmap_stop_search.png" width="400"><br/><br/>   
+<img src="images/heatmap_stop_search.png" width="600"><br/><br/>   
 
 
 # Notebooks   
