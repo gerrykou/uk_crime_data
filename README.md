@@ -2,11 +2,11 @@
 
 UK Police Data Ingestion  
 
-The aim of the project is to ingest data from uk police data API to Gcloud - BigQuery.  
+The aim of the project is to ingest data from UK police data API to Google cloud Storage -> BigQuery -> Data studio.  
 To be more precise, data is coming from this API about stop and searches by force:  
 https://data.police.uk/docs/method/stops-force/  
   
-We will investigate data from 'metropolitan' police force.  
+The data from 'metropolitan' police force is used.  
 
 ## Project Architecture
 
@@ -14,10 +14,12 @@ These Technologies are used for this Project:
 * Python
 * Docker Compose
 * Airflow
-* Gcloud Storage
-* Gcloud BigQuery
-* Gcloud Data Studio
+* Google cloud Storage
+* Google cloud BigQuery
+* Google cloud Data Studio
 * Terraform
+* PySpark
+* Jupyter Notebooks
 
 ## Dags
 As a description of the Pipeline, the DAGS tasks are presented here:  
@@ -26,9 +28,6 @@ As a description of the Pipeline, the DAGS tasks are presented here:
 <img src="images/gcs_2_bq_dag.png" width="400"><br/><br/>   
 
 
-## PySpark Jupyter Notebooks Analysis
-
-An analysis of sample data is presented in this jupyter notebook file [search-force.ipynb](/notebooks/search-force.ipynb)  
    
 ## Setup Google Cloud project  
 
@@ -65,15 +64,38 @@ terraform plan
 terraform apply
 ```
 
-## Read from Google cloud Storage with Spark and Jupyter
-[here](/notebooks/gcs-search-force.ipynb)
-
 ## Queries  
 
-![Queries](/images/query-object-of-search.png) 
-<!-- ```
-make run-code
+This is the Query needed to produce the dashboard   
+
 ```
+SELECT
+IFNULL(NULLIF(age_range,''),'N/A') AS age_range,
+IFNULL(NULLIF(outcome,''),'N/A') AS outcome,
+IFNULL(NULLIF(gender,''),'N/A') AS gender,
+datetime,
+IFNULL(NULLIF(officer_defined_ethnicity,''),'N/A') AS officer_defined_ethnicity,
+IFNULL(NULLIF(type,''),'N/A') AS type,
+IFNULL(NULLIF(object_of_search,''),'N/A') AS object_of_search,
+latitude,
+longitude,
+lat_long
+FROM 'de-bootcamp-339509.stop_and_search.stop_and_search_partitioned_table'
 ```
-make run-tests
-``` -->
+More queries are in this file [queries.sql](queries.sql)
+
+# Dashboard
+
+Link to Data Studio [`report`](https://datastudio.google.com/reporting/a5549182-d121-4db6-8955-17de26c95602)   
+
+<img src="images/heatmap_stop_search.png" width="400"><br/><br/>   
+
+
+# Notebooks   
+
+## PySpark Jupyter Notebooks Analysis   
+An analysis of sample data is presented in this jupyter notebook file [search-force.ipynb](/notebooks/search-force.ipynb)   
+
+## Read from Google cloud Storage with Spark and Jupyter
+[gcs-search-force.ipynb](/notebooks/gcs-search-force.ipynb)
+
